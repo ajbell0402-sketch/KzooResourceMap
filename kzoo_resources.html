@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kalamazoo Community Resources</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap');
+
+  :root {
+    --cream: #F5F0E8;
+    --ink: #1C1C1C;
+    --sage: #4A7C59;
+    --sage-light: #D4E8DA;
+    --rust: #C4622D;
+    --rust-light: #F5DDD3;
+    --gold: #C9973A;
+    --gold-light: #F5EDD3;
+    --slate: #4A5568;
+    --border: #E0D8CC;
+    --white: #FFFFFF;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--ink);
+    color: var(--cream);
+    padding: 0 2rem;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    border-bottom: 3px solid var(--sage);
+  }
+
+  .site-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.25rem;
+    letter-spacing: -0.01em;
+  }
+
+  .site-title span {
+    color: var(--gold);
+  }
+
+  nav {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  nav button {
+    background: none;
+    border: none;
+    color: var(--cream);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 0.4rem 0.85rem;
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.15s, background 0.15s;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  nav button:hover { opacity: 1; background: rgba(255,255,255,0.1); }
+  nav button.active { opacity: 1; background: var(--sage); color: white; }
+
+  /* ── HERO ── */
+  .hero {
+    background: var(--ink);
+    color: var(--cream);
+    padding: 3.5rem 2rem 3rem;
+    text-align: center;
+    border-bottom: 1px solid #333;
+  }
+
+  .hero h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    line-height: 1.1;
+    margin-bottom: 0.75rem;
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    color: var(--gold);
+  }
+
+  .hero p {
+    font-size: 1rem;
+    opacity: 0.75;
+    max-width: 520px;
+    margin: 0 auto 1.5rem;
+    line-height: 1.6;
+  }
+
+  .category-pills {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.9rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border: 1.5px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: rgba(255,255,255,0.1);
+    color: var(--cream);
+    border-color: rgba(255,255,255,0.2);
+  }
+
+  .pill:hover { background: rgba(255,255,255,0.18); }
+  .pill.active-pill { border-color: currentColor; }
+  .pill.pill-all.active-pill { background: rgba(255,255,255,0.2); border-color: var(--cream); }
+  .pill.pill-food.active-pill { background: var(--sage); border-color: var(--sage); }
+  .pill.pill-free-store.active-pill { background: var(--rust); border-color: var(--rust); }
+  .pill.pill-mobile.active-pill { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── VIEWS ── */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ── MAP VIEW ── */
+  #map-view { display: none; }
+  #map-view.active { display: flex; flex-direction: column; }
+
+  #map {
+    height: calc(100vh - 60px - 230px);
+    min-height: 350px;
+    width: 100%;
+  }
+
+  .sidebar-panel {
+    height: 230px;
+    overflow-y: auto;
+    background: var(--white);
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar-header {
+    padding: 0.75rem 1.25rem 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--slate);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--white);
+    z-index: 1;
+  }
+
+  .resource-list {
+    list-style: none;
+  }
+
+  .resource-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.65rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+
+  .resource-item:hover { background: var(--cream); }
+  .resource-item.highlighted { background: var(--sage-light); }
+
+  .resource-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 4px;
+  }
+
+  .resource-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+    line-height: 1.3;
+  }
+
+  .resource-meta {
+    font-size: 0.73rem;
+    color: var(--slate);
+    margin-top: 1px;
+  }
+
+  /* ── CALENDAR VIEW ── */
+  #calendar-view {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+
+  .calendar-intro {
+    margin-bottom: 1.5rem;
+    padding: 1rem 1.25rem;
+    background: var(--sage-light);
+    border-left: 3px solid var(--sage);
+    border-radius: 0 6px 6px 0;
+    font-size: 0.88rem;
+    color: var(--ink);
+    line-height: 1.5;
+  }
+
+  .calendar-intro a {
+    color: var(--sage);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .calendar-intro a:hover { text-decoration: underline; }
+
+  .gcal-embed {
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.1);
+    border: 1px solid var(--border);
+  }
+
+  /* ── DIRECTORY VIEW ── */
+  #directory-view {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+
+  .dir-search {
+    margin-bottom: 1.5rem;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .dir-search input {
+    flex: 1;
+    min-width: 200px;
+    padding: 0.6rem 1rem;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    background: var(--white);
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .dir-search input:focus { border-color: var(--sage); }
+
+  .dir-filter {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .filter-btn {
+    padding: 0.45rem 0.85rem;
+    border-radius: 5px;
+    border: 1.5px solid var(--border);
+    background: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--slate);
+  }
+
+  .filter-btn:hover { border-color: var(--ink); color: var(--ink); }
+  .filter-btn.on-food { background: var(--sage); border-color: var(--sage); color: white; }
+  .filter-btn.on-free_store { background: var(--rust); border-color: var(--rust); color: white; }
+  .filter-btn.on-mobile { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+  .filter-btn.on-all { background: var(--ink); border-color: var(--ink); color: white; }
+
+  .dir-count {
+    font-size: 0.8rem;
+    color: var(--slate);
+    margin-bottom: 1rem;
+  }
+
+  .dir-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+  }
+
+  .dir-card {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 1.1rem 1.25rem;
+    transition: box-shadow 0.15s, border-color 0.15s;
+    cursor: default;
+  }
+
+  .dir-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); border-color: #c8c0b4; }
+
+  .card-top {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .card-badge {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.2rem 0.5rem;
+    border-radius: 3px;
+  }
+
+  .badge-food { background: var(--sage-light); color: var(--sage); }
+  .badge-free_store { background: var(--rust-light); color: var(--rust); }
+  .badge-mobile { background: var(--gold-light); color: #8a6320; }
+
+  .card-name {
+    font-weight: 600;
+    font-size: 0.92rem;
+    line-height: 1.35;
+    margin-bottom: 0.45rem;
+  }
+
+  .card-addr {
+    font-size: 0.78rem;
+    color: var(--slate);
+    line-height: 1.45;
+    margin-bottom: 0.5rem;
+  }
+
+  .card-actions {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-top: 0.65rem;
+  }
+
+  .card-link {
+    font-size: 0.76rem;
+    font-weight: 500;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    text-decoration: none;
+    border: 1px solid var(--border);
+    color: var(--slate);
+    transition: all 0.12s;
+  }
+
+  .card-link:hover { background: var(--ink); color: var(--white); border-color: var(--ink); }
+  .card-link.primary { background: var(--sage); color: white; border-color: var(--sage); }
+  .card-link.primary:hover { background: #3a6347; border-color: #3a6347; }
+
+  .card-schedule {
+    font-size: 0.76rem;
+    color: var(--sage);
+    font-weight: 500;
+    margin-top: 0.35rem;
+  }
+
+  /* ── ABOUT VIEW ── */
+  #about-view {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem;
+  }
+
+  #about-view h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.75rem;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+  }
+
+  #about-view p {
+    font-size: 0.93rem;
+    line-height: 1.7;
+    color: #333;
+    margin-bottom: 1.1rem;
+  }
+
+  #about-view h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 1.75rem 0 0.75rem;
+    color: var(--ink);
+  }
+
+  .about-callout {
+    background: var(--sage-light);
+    border-left: 3px solid var(--sage);
+    padding: 1rem 1.25rem;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.88rem;
+    line-height: 1.6;
+    margin: 1.25rem 0;
+  }
+
+  .about-callout a {
+    color: var(--sage);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .resource-types {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin: 0.75rem 0;
+  }
+
+  .rtype-card {
+    padding: 0.85rem 1rem;
+    border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: var(--white);
+  }
+
+  .rtype-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.3rem;
+  }
+
+  .rtype-desc {
+    font-size: 0.8rem;
+    color: var(--slate);
+    line-height: 1.5;
+  }
+
+  /* ── POPUP STYLES ── */
+  .leaflet-popup-content-wrapper {
+    border-radius: 10px !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important;
+    font-family: 'DM Sans', sans-serif !important;
+  }
+
+  .leaflet-popup-content {
+    margin: 12px 16px !important;
+    font-size: 0.85rem !important;
+    line-height: 1.5 !important;
+  }
+
+  .popup-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+  }
+
+  .popup-addr {
+    color: var(--slate);
+    font-size: 0.78rem;
+    margin-bottom: 6px;
+    line-height: 1.4;
+  }
+
+  .popup-badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.15rem 0.45rem;
+    border-radius: 3px;
+    margin-bottom: 6px;
+  }
+
+  .popup-sched {
+    font-size: 0.76rem;
+    color: var(--sage);
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+
+  .popup-link {
+    display: inline-block;
+    margin-top: 6px;
+    font-size: 0.76rem;
+    color: var(--sage);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  /* ── UTILITIES ── */
+  @media (max-width: 600px) {
+    .hero { padding: 2rem 1rem 1.75rem; }
+    nav button { padding: 0.35rem 0.6rem; font-size: 0.75rem; }
+    .dir-grid { grid-template-columns: 1fr; }
+    .resource-types { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="site-title">Kzoo <span>Resources</span></div>
+  <nav>
+    <button class="active" onclick="showView('map')">Map</button>
+    <button onclick="showView('calendar')">Calendar</button>
+    <button onclick="showView('directory')">Directory</button>
+    <button onclick="showView('about')">About</button>
+  </nav>
+</header>
+
+<!-- ══ HERO (shown only on map view) ══ -->
+<div class="hero" id="hero-section">
+  <h1>Find <em>free food</em> &amp; resources<br>in Kalamazoo</h1>
+  <p>Food pantries, free stores, mobile markets, and more — updated regularly for the greater Kalamazoo area.</p>
+  <div class="category-pills">
+    <div class="pill pill-all active-pill" onclick="filterMap('all', this)">
+      <span class="dot" style="background:#ccc"></span> All resources
+    </div>
+    <div class="pill pill-food" onclick="filterMap('food_bank', this)">
+      <span class="dot" style="background:#4A7C59"></span> Food pantries &amp; banks
+    </div>
+    <div class="pill pill-free-store" onclick="filterMap('free_store', this)">
+      <span class="dot" style="background:#C4622D"></span> Free stores
+    </div>
+    <div class="pill pill-mobile" onclick="filterMap('mobile', this)">
+      <span class="dot" style="background:#C9973A"></span> Mobile distribution
+    </div>
+  </div>
+</div>
+
+<!-- ══ MAP VIEW ══ -->
+<div id="map-view" class="view active">
+  <div id="map"></div>
+  <div class="sidebar-panel">
+    <div class="sidebar-header" id="sidebar-header">All locations · <span id="count-label">30</span> resources</div>
+    <ul class="resource-list" id="resource-list"></ul>
+  </div>
+</div>
+
+<!-- ══ CALENDAR VIEW ══ -->
+<div id="calendar-view" class="view">
+  <div class="calendar-intro">
+    This calendar shows upcoming food distribution events, pantry hours, and free store dates across the Kalamazoo area. 
+    <a href="https://calendar.google.com/calendar/u/0?cid=OGM5MzRkMGIzYTFlYjRjMDEzZjI5NDRhZTBjMzFmYzc0YzEwYzg5OGIwYWQ1MjAxNjk3ODQ4MDViZWY4MTE0Y0Bncm91cC5jYWxlbmRhci5nb29nbGUuY29t" target="_blank">Add to your Google Calendar →</a>
+  </div>
+  <div class="gcal-embed">
+    <iframe 
+      src="https://calendar.google.com/calendar/embed?src=8c934d0b3a1eb4c013f2944ae0c31fc74c10c898b0ad52016978480 5bef8114c%40group.calendar.google.com&ctz=America%2FDetroit&mode=AGENDA&showTitle=0&showPrint=0&showTabs=0&showCalendars=0&showTz=1&bgcolor=%23F5F0E8"
+      style="border:0; width:100%; height:600px; display:block;"
+      frameborder="0"
+      scrolling="no">
+    </iframe>
+  </div>
+</div>
+
+<!-- ══ DIRECTORY VIEW ══ -->
+<div id="directory-view" class="view">
+  <div class="dir-search">
+    <input type="text" id="dir-search-input" placeholder="Search by name or address…" oninput="filterDirectory()">
+    <div class="dir-filter">
+      <button class="filter-btn on-all" data-cat="all" onclick="setCatFilter(this)">All</button>
+      <button class="filter-btn" data-cat="food_bank" onclick="setCatFilter(this)">Food pantries</button>
+      <button class="filter-btn" data-cat="free_store" onclick="setCatFilter(this)">Free stores</button>
+      <button class="filter-btn" data-cat="mobile" onclick="setCatFilter(this)">Mobile</button>
+    </div>
+  </div>
+  <div class="dir-count" id="dir-count"></div>
+  <div class="dir-grid" id="dir-grid"></div>
+</div>
+
+<!-- ══ ABOUT VIEW ══ -->
+<div id="about-view" class="view">
+  <h2>About Kzoo Resources</h2>
+  <p>This site is a community project aimed at making it easier for Kalamazoo-area residents to find free and low-cost food, clothing, and essential resources — all in one place.</p>
+
+  <div class="about-callout">
+    Know of a resource that's missing? Have updated hours or contact info? 
+    <a href="mailto:?subject=Kzoo Resources Suggestion">Get in touch</a> — this site is only as good as the community that maintains it.
+  </div>
+
+  <h3>What's listed here</h3>
+  <div class="resource-types">
+    <div class="rtype-card">
+      <div class="rtype-label" style="color: var(--sage)">🥫 Food Pantries &amp; Banks</div>
+      <div class="rtype-desc">Fixed-location pantries and food banks with regular distribution hours.</div>
+    </div>
+    <div class="rtype-card">
+      <div class="rtype-label" style="color: var(--rust)">👕 Free Stores</div>
+      <div class="rtype-desc">Locations where you can take clothing, household goods, and more at no cost.</div>
+    </div>
+    <div class="rtype-card">
+      <div class="rtype-label" style="color: var(--gold)">🚐 Mobile Distribution</div>
+      <div class="rtype-desc">Mobile food trucks and pop-up markets that visit different neighborhoods.</div>
+    </div>
+    <div class="rtype-card">
+      <div class="rtype-label" style="color: var(--slate)">📅 Coming soon</div>
+      <div class="rtype-desc">Low-barrier healthcare clinics, ESL classes, free youth events, and more.</div>
+    </div>
+  </div>
+
+  <h3>Data &amp; calendar</h3>
+  <p>Event dates are maintained in a Google Calendar and updated as new information becomes available. Hours and dates change — always call ahead or check the organization's website before visiting.</p>
+
+  <h3>For organizations</h3>
+  <p>If you run a food pantry, free store, or community resource in the Kalamazoo area and want to be listed here, please reach out. This directory is free and non-commercial.</p>
+
+  <h3>Geographic coverage</h3>
+  <p>This site covers Kalamazoo, Portage, Comstock, Parchment, Plainwell, and surrounding communities in Kalamazoo County and the broader Southwest Michigan region.</p>
+</div>
+
+<script>
+// ══ DATA ══
+const orgs = [
+  { id: "twelve_baskets", name: "Twelve Baskets Food Pantry & Community Store", address: "10332 Portage Rd, Portage, MI 49002", website: "https://twelvebasketspantry.org", category: "food_bank", lat: 42.1952, lng: -85.5891, schedule: "Tuesdays 1–4pm + Fridays 11:45am–12:45pm (weekly)" },
+  { id: "salvation_army", name: "Salvation Army Food Distribution", address: "1700 S Burdick St, Kalamazoo, MI 49001", website: "https://www.salvationarmymichigan.org", category: "food_bank", lat: 42.272, lng: -85.5762, schedule: "Mon–Fri multiple shifts (see calendar)" },
+  { id: "african_community", name: "African Community Kalamazoo Pantry", address: "4445 Ravine Rd, Kalamazoo, MI 49006", website: "", category: "food_bank", lat: 42.2955, lng: -85.6442, schedule: "Multiple days/week (see calendar)" },
+  { id: "gathering_harvest", name: "Gathering Harvest Food Bank", address: "2528 E Main St, Kalamazoo, MI 49048", website: "", category: "food_bank", lat: 42.2988, lng: -85.5088, schedule: "Weekly Tuesdays + monthly Fridays & Saturdays" },
+  { id: "christian_neighbors", name: "Christian Neighbors Food Pantry", address: "282 12th St, Plainwell, MI 49080", website: "https://christianneighbors.org", category: "food_bank", lat: 42.4416, lng: -85.6441, schedule: "Mon & Tue weekly, Thu afternoons" },
+  { id: "comstock_cc", name: "Comstock Community Center Food Bank", address: "6330 King Hwy, Kalamazoo, MI 49048", website: "", category: "food_bank", lat: 42.3103, lng: -85.4985, schedule: "Tuesdays 1–3pm (weekly)" },
+  { id: "kzoo_deacons", name: "Kalamazoo Deacon's Conference Food Bank", address: "1010 N Westnedge Ave, Kalamazoo, MI 49007", website: "", category: "food_bank", lat: 42.303, lng: -85.5872, schedule: "Mon & Thu 9–11am (weekly)" },
+  { id: "stone_church", name: "Stone Church / New Genesis Food Pantry", address: "1225 W Paterson St, Kalamazoo, MI 49007", website: "", category: "food_bank", lat: 42.3012, lng: -85.602, schedule: "Mon, Wed & Thu weekly" },
+  { id: "fresh_fire_ame", name: "Fresh Fire AME Food Pantry", address: "2508 Gull Rd, Kalamazoo, MI 49048", website: "", category: "food_bank", lat: 42.3192, lng: -85.52, schedule: "1st & last Saturdays 11am–2pm" },
+  { id: "westwood", name: "Westwood Neighborhood Food Pantry", address: "538 Nichols Rd, Kalamazoo, MI 49006", website: "", category: "food_bank", lat: 42.291, lng: -85.628, schedule: "Saturdays 9am–12pm (selected dates)" },
+  { id: "milwood_umc", name: "Milwood UMC Food Pantry", address: "3919 Portage Street, Kalamazoo, MI 49001", website: "", category: "food_bank", lat: 42.2705, lng: -85.5671, schedule: "2nd Wednesdays 4–6pm, Fridays 11am–1pm" },
+  { id: "valley_family", name: "Valley Family Church Food Pantry", address: "2500 Vincent Ave, Portage, MI 49024", website: "", category: "food_bank", lat: 42.2118, lng: -85.607, schedule: "Tuesdays 5:30–7pm (weekly)" },
+  { id: "prince_of_peace", name: "Prince of Peace Lutheran Church Food Bank", address: "1747 W Milham Ave, Portage, MI 49024", website: "", category: "food_bank", lat: 42.229, lng: -85.6185, schedule: "1st & 3rd Thursdays 1–3pm" },
+  { id: "parchment_umc", name: "Parchment UMC Food Bank", address: "225 Glendale Blvd, Parchment, MI 49004", website: "", category: "food_bank", lat: 42.3299, lng: -85.5782, schedule: "4th Wednesdays 4–6pm" },
+  { id: "faith_life", name: "Faith Life Church Food Bank", address: "310 S Riverview Dr, Parchment, MI 49004", website: "", category: "food_bank", lat: 42.3295, lng: -85.5778, schedule: "Saturdays 10am–12pm (weekly)" },
+  { id: "calvary_bible", name: "Calvary Bible Church Food Bank", address: "855 S Drake Rd, Kalamazoo, MI 49009", website: "", category: "food_bank", lat: 42.2697, lng: -85.6604, schedule: "Last Thursdays 3–5pm" },
+  { id: "carters_caring_hands", name: "Carter's Caring Hands Food Pantry", address: "855 S Drake Rd, Kalamazoo, MI 49009", website: "", category: "food_bank", lat: 42.271, lng: -85.661, schedule: "2nd Thursdays 3–5pm" },
+  { id: "allen_chapel", name: "Allen Chapel AME Food Pantry", address: "804 W North St, Kalamazoo, MI 49007", website: "", category: "food_bank", lat: 42.2985, lng: -85.595, schedule: "1st Tuesdays 2–4pm" },
+  { id: "dorothy_hobbs", name: "Dorothy Hobbs Food Pantry", address: "1216 N Westnedge Ave, Kalamazoo, MI 49007", website: "", category: "food_bank", lat: 42.3037, lng: -85.5883, schedule: "3rd Fridays 4–6pm" },
+  { id: "catholic_charities", name: "Catholic Charities / Colonial Acres Food Bank", address: "5450 Mt Ct, Portage, MI 49002", website: "https://www.catholiccharitiesgrm.org", category: "food_bank", lat: 42.1887, lng: -85.5903, schedule: "1st Fridays 2–4pm" },
+  { id: "south_mi_food_bank", name: "South MI Food Bank Mobile Market", address: "150 E Crosstown Pkwy, Kalamazoo, MI 49001", website: "https://www.feedwm.org", category: "mobile", lat: 42.2747, lng: -85.5559, schedule: "Monthly — see calendar for dates" },
+  { id: "loaves_fishes", name: "Kzoo Loaves & Fishes Mobile Distribution", address: "Multiple sites across Kalamazoo County", website: "", category: "mobile", lat: 42.2920, lng: -85.5850, schedule: "Weekly rotating schedule — see calendar" },
+  { id: "kzoo_parks_catholic", name: "Kzoo Parks & Rec / Catholic Charities Food Bank", address: "251 Mills St, Kalamazoo, MI 49048", website: "", category: "mobile", lat: 42.3101, lng: -85.51, schedule: "3rd Fridays 2–4pm" },
+  { id: "sunnyside_free_store", name: "Sunnyside UMC Free Store", address: "2800 Gull Rd, Kalamazoo, MI 49048", website: "", category: "free_store", lat: 42.309, lng: -85.5128, schedule: "Wednesdays 12–3pm (weekly)" },
+  { id: "dream_center", name: "Kalamazoo Dream Center", address: "1122 Portage Street, Kalamazoo, MI 49001", website: "https://kzoodreamcenter.org", category: "free_store", lat: 42.2822, lng: -85.5719, schedule: "Tue–Sat 9am–4pm" },
+  { id: "fumc_free_store", name: "First UMC Annual Free Store", address: "212 S Park St, Kalamazoo, MI 49007", website: "", category: "free_store", lat: 42.292, lng: -85.5852, schedule: "Annual event (see calendar)" },
+  { id: "wakeshma", name: "Wakeshma Community Church Food Bank", address: "16732 E Uv Ave, Fulton, MI 49052", website: "", category: "food_bank", lat: 42.152, lng: -85.345, schedule: "Last Wednesdays 9:30–10:30am" },
+  { id: "haven_church", name: "Haven Church Loaves & Fishes Food Bank", address: "5350 N Sprinkle Rd, Kalamazoo, MI 49004", website: "", category: "food_bank", lat: 42.3425, lng: -85.5251, schedule: "See calendar for dates" },
+  { id: "galesburg_umc", name: "Galesburg UMC Loaves & Fishes Food Bank", address: "111 W Battle Creek St, Galesburg, MI 49053", website: "", category: "food_bank", lat: 42.2846, lng: -85.4192, schedule: "Monthly — see calendar" },
+  { id: "family_health_food", name: "Family Health Center / Loaves & Fishes Food Bank", address: "117 W Paterson St, Kalamazoo, MI 49007", website: "https://www.familyhealthcenter.org", category: "food_bank", lat: 42.3013, lng: -85.588, schedule: "Monthly — see calendar" },
+];
+
+const catColors = {
+  food_bank: '#4A7C59',
+  free_store: '#C4622D',
+  mobile: '#C9973A',
+};
+
+const catLabels = {
+  food_bank: 'Food pantry',
+  free_store: 'Free store',
+  mobile: 'Mobile market',
+};
+
+// ══ MAP ══
+let map, markers = [], currentFilter = 'all';
+
+function initMap() {
+  map = L.map('map').setView([42.292, -85.585], 12);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '© OpenStreetMap contributors © CARTO',
+    subdomains: 'abcd',
+    maxZoom: 19
+  }).addTo(map);
+
+  orgs.forEach((org, i) => {
+    if (!org.lat) return;
+    const color = catColors[org.category] || '#888';
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="
+        width:13px;height:13px;border-radius:50%;
+        background:${color};border:2.5px solid white;
+        box-shadow:0 1px 4px rgba(0,0,0,0.3);
+        cursor:pointer;
+      "></div>`,
+      iconSize: [13, 13],
+      iconAnchor: [6, 6],
+    });
+
+    const addrShort = org.address.replace(/, USA$/, '');
+    const websiteLink = org.website ? `<a class="popup-link" href="${org.website}" target="_blank">Visit website →</a>` : '';
+    const popup = `
+      <div class="popup-name">${org.name}</div>
+      <span class="popup-badge badge-${org.category}" style="background:${color}20;color:${color}">${catLabels[org.category]}</span>
+      <div class="popup-addr">${addrShort}</div>
+      <div class="popup-sched">📅 ${org.schedule}</div>
+      ${websiteLink}
+    `;
+
+    const marker = L.marker([org.lat, org.lng], { icon })
+      .addTo(map)
+      .bindPopup(popup);
+
+    marker._orgId = org.id;
+    marker._category = org.category;
+    markers.push(marker);
+  });
+
+  buildSidebar('all');
+}
+
+function filterMap(cat, el) {
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active-pill'));
+  el.classList.add('active-pill');
+  currentFilter = cat;
+
+  markers.forEach(m => {
+    const show = cat === 'all' || m._category === cat;
+    if (show) { if (!map.hasLayer(m)) m.addTo(map); }
+    else { if (map.hasLayer(m)) map.removeLayer(m); }
+  });
+
+  buildSidebar(cat);
+}
+
+function buildSidebar(cat) {
+  const list = document.getElementById('resource-list');
+  const countLabel = document.getElementById('count-label');
+  const filtered = orgs.filter(o => cat === 'all' || o.category === cat);
+  countLabel.textContent = filtered.length;
+
+  list.innerHTML = '';
+  filtered.forEach(org => {
+    const color = catColors[org.category] || '#888';
+    const li = document.createElement('li');
+    li.className = 'resource-item';
+    li.dataset.id = org.id;
+    const addrShort = org.address.split(',').slice(0,2).join(',');
+    li.innerHTML = `
+      <div class="resource-dot" style="background:${color}"></div>
+      <div>
+        <div class="resource-name">${org.name}</div>
+        <div class="resource-meta">${addrShort}</div>
+      </div>
+    `;
+    li.addEventListener('click', () => {
+      const marker = markers.find(m => m._orgId === org.id);
+      if (marker) {
+        map.setView([org.lat, org.lng], 15);
+        marker.openPopup();
+        document.querySelectorAll('.resource-item').forEach(i => i.classList.remove('highlighted'));
+        li.classList.add('highlighted');
+      }
+    });
+    list.appendChild(li);
+  });
+}
+
+// ══ DIRECTORY ══
+let dirCatFilter = 'all';
+
+function buildDirectory() {
+  filterDirectory();
+}
+
+function setCatFilter(btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => {
+    b.className = 'filter-btn';
+  });
+  dirCatFilter = btn.dataset.cat;
+  btn.classList.add(`on-${dirCatFilter}`);
+  filterDirectory();
+}
+
+function filterDirectory() {
+  const q = document.getElementById('dir-search-input').value.toLowerCase();
+  const grid = document.getElementById('dir-grid');
+  const countEl = document.getElementById('dir-count');
+
+  const filtered = orgs.filter(o => {
+    const catMatch = dirCatFilter === 'all' || o.category === dirCatFilter;
+    const textMatch = !q || o.name.toLowerCase().includes(q) || o.address.toLowerCase().includes(q);
+    return catMatch && textMatch;
+  });
+
+  countEl.textContent = `${filtered.length} resource${filtered.length !== 1 ? 's' : ''} found`;
+  grid.innerHTML = '';
+
+  filtered.forEach(org => {
+    const color = catColors[org.category];
+    const addrShort = org.address.replace(/, USA$/, '');
+    const websiteBtn = org.website
+      ? `<a class="card-link primary" href="${org.website}" target="_blank">Website</a>`
+      : '';
+    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(org.address)}`;
+    const card = document.createElement('div');
+    card.className = 'dir-card';
+    card.innerHTML = `
+      <div class="card-top">
+        <span class="card-badge badge-${org.category}">${catLabels[org.category]}</span>
+      </div>
+      <div class="card-name">${org.name}</div>
+      <div class="card-addr">${addrShort}</div>
+      <div class="card-schedule">📅 ${org.schedule}</div>
+      <div class="card-actions">
+        ${websiteBtn}
+        <a class="card-link" href="${mapsUrl}" target="_blank">Directions</a>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// ══ VIEW SWITCHING ══
+function showView(view) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+
+  document.getElementById(`${view}-view`).classList.add('active');
+  document.querySelector(`nav button[onclick="showView('${view}')"]`).classList.add('active');
+
+  const hero = document.getElementById('hero-section');
+  hero.style.display = view === 'map' ? 'block' : 'none';
+
+  if (view === 'directory') buildDirectory();
+  if (view === 'map') setTimeout(() => map.invalidateSize(), 100);
+}
+
+// ══ INIT ══
+window.addEventListener('DOMContentLoaded', () => {
+  initMap();
+});
+</script>
+</body>
+</html>
